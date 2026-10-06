@@ -132,6 +132,33 @@ Website http://localhost:3000 · Backoffice http://localhost:8000/admin/
 
 ---
 
+## Deploy for free (Vercel + Render + Neon)
+
+| Part | Host | Notes |
+|---|---|---|
+| Database | **Neon** (free) | 1 GB, never expires. Region: AWS Singapore |
+| API + backoffice | **Render** (free) | Sleeps after 15 min idle (~1 min to wake). Config: `render.yaml` |
+| Website | **Vercel** (Hobby) | Root directory `frontend`, region pinned to Singapore in `frontend/vercel.json` |
+
+1. **Neon** → create a project (region *AWS Asia Pacific (Singapore)*) → copy the connection string.
+2. **Render** → New → **Blueprint** → choose this repo → paste the Neon string into `DATABASE_URL` → Apply.
+   Migrations run automatically on every start. Check `https://<service>.onrender.com/api/health/`.
+3. **Create your admin** from your own computer against the Neon database:
+   ```powershell
+   cd backend
+   $env:DATABASE_URL="<Neon connection string>"
+   python manage.py createsuperuser
+   python manage.py sync_youtube --rss
+   Remove-Item Env:DATABASE_URL
+   ```
+4. **Vercel** → Add New → Project → import this repo → **Root Directory: `frontend`** → environment variables:
+   - `API_URL` = `https://<service>.onrender.com`
+   - `BACKOFFICE_URL` = `https://<service>.onrender.com/admin/`
+5. **Keep the API awake** (optional): an uptime monitor such as UptimeRobot calling `/api/health/` every 5–10 minutes.
+
+Free-tier limits to know: Render's disk is temporary, so images uploaded in the backoffice disappear on restart
+(use object storage for production), and one always-on free service uses ~744 of Render's 750 free hours a month.
+
 ## Tests
 
 ```bash

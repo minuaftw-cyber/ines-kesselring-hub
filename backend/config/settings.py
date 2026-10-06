@@ -55,6 +55,12 @@ if not SECRET_KEY:
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,backend")
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS", "http://localhost:8000")
 
+# On Render, trust the service's own address automatically (e.g. ines-api.onrender.com).
+RENDER_EXTERNAL_HOSTNAME = env("RENDER_EXTERNAL_HOSTNAME")
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+    CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_EXTERNAL_HOSTNAME}")
+
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -135,7 +141,10 @@ STORAGES = {
 MEDIA_URL = "/media/"
 MEDIA_ROOT = Path(env("DJANGO_MEDIA_ROOT", str(BASE_DIR / "media")))
 # Public address the browser uses to load uploaded files (article covers).
-MEDIA_PUBLIC_BASE_URL = env("MEDIA_PUBLIC_BASE_URL", "http://localhost:8000").rstrip("/")
+MEDIA_PUBLIC_BASE_URL = (
+    env("MEDIA_PUBLIC_BASE_URL")
+    or (f"https://{RENDER_EXTERNAL_HOSTNAME}" if RENDER_EXTERNAL_HOSTNAME else "http://localhost:8000")
+).rstrip("/")
 # Let Django serve uploads itself (fine for a small site; use a CDN/object storage at scale).
 SERVE_MEDIA = env_bool("DJANGO_SERVE_MEDIA", default=True)
 
@@ -176,6 +185,8 @@ if env_bool("DJANGO_HTTPS"):
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_HSTS_SECONDS = int(env("DJANGO_HSTS_SECONDS", "3600"))
+    # Platform health checks call this over plain HTTP inside the network.
+    SECURE_REDIRECT_EXEMPT = [r"^api/health/$"]
 
 
 LOGGING = {

@@ -1,0 +1,29 @@
+# Render Blueprint: the Django API + backoffice.
+# Render dashboard → New → Blueprint → pick this repository.
+# The database lives on Neon (Render's free Postgres is deleted after 30 days).
+services:
+  - type: web
+    name: ines-kesselring-api
+    runtime: python
+    plan: free
+    region: singapore
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
+    # Apply migrations on every start, then serve with gunicorn.
+    startCommand: python manage.py migrate --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 60 --access-logfile -
+    healthCheckPath: /api/health/
+    autoDeploy: true
+    envVars:
+      - key: DJANGO_DEBUG
+        value: "0"
+      - key: DJANGO_HTTPS
+        value: "1"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      # Paste the Neon connection string when Render asks for it.
+      - key: DATABASE_URL
+        sync: false
+      - key: YOUTUBE_CHANNEL_ID
+        value: UCAweDfCuXKD6_E5gjNizQSw
+      - key: YOUTUBE_API_KEY
+        sync: false
