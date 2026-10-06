@@ -38,7 +38,9 @@ if _env_file.exists():
         if not line or line.startswith("#") or "=" not in line:
             continue
         key, value = line.split("=", 1)
-        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+        value = value.strip().strip('"').strip("'")
+        if value:  # an empty value (e.g. "DATABASE_URL=") means "not set"
+            os.environ.setdefault(key.strip(), value)
 
 
 DEBUG = env_bool("DJANGO_DEBUG", default=False)
@@ -100,8 +102,8 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 # Database: DATABASE_URL (e.g. postgres://user:pass@db:5432/ines) or local SQLite.
 DATABASES = {
-    "default": dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+    "default": dj_database_url.parse(
+        env("DATABASE_URL") or f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
         conn_max_age=60,
     )
 }
